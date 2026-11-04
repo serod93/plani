@@ -4,6 +4,7 @@ Planificador de talleres en el navegador: reparte el tiempo de un taller en una 
 
 **Sitio:** https://serod93.github.io/plani/
 
+- Incluye un recorrido guiado que se muestra la primera vez, se puede saltar y se reabre con «Ver tutorial».
 - Todo corre en tu navegador. No hay servidor ni cuentas: lo que planificas se guarda solo en tu navegador, en este dispositivo.
 - Arrastra el borde de un módulo para cambiar su inicio o su término. Si choca con el vecino, la herramienta pregunta si recortar o desplazar el resto.
 - **Guardar para Plani** descarga un archivo `.plani` (JSON legible) con lo editable; **Importar .plani** lo vuelve a abrir. También lo lee la app de Mac de Plani.
@@ -26,3 +27,10 @@ Planificador de talleres en el navegador: reparte el tiempo de un taller en una 
 ```
 
 Las horas son minutos desde las 00:00. Los campos vacíos se omiten.
+
+## Estructura del sitio
+
+- `index.html`: la herramienta. `assets/plani.js` y `assets/plani.css` son su lógica y estilos; `assets/tutorial.*` es el recorrido guiado.
+- `404.html`: página para direcciones que no existen (GitHub Pages la sirve sola). Usa rutas absolutas bajo `/plani/`.
+- `plimplam/`: tokens de la marca plim plam. (`tokens.css`, copia del sistema de diseño) e ilustración.
+- `assets/marca.css`: logotipo, botones y cierre de marca compartidos.

@@ -1,0 +1,28 @@
+/* Recorrido guiado. Solo tokens de plimplam/tokens.css. */
+.tour-dim,.tour-spot,.tour-card{position:fixed;z-index:100}
+.tour-dim{inset:0;background:rgba(20,18,16,.62)}
+.tour-spot{pointer-events:none;border-radius:var(--radio-chico);box-shadow:0 0 0 3px var(--acento),0 0 0 9999px rgba(20,18,16,.62);
+  transition:left var(--duracion-rapido) var(--curva-salida),top var(--duracion-rapido) var(--curva-salida),width var(--duracion-rapido) var(--curva-salida),height var(--duracion-rapido) var(--curva-salida)}
+.tour-card{background:var(--papel-200);color:var(--tinta);border:1px solid var(--tinta);border-radius:var(--radio-tarjeta);padding:var(--espacio-3);display:flex;flex-direction:column;gap:var(--espacio-2);
+  max-height:calc(100vh - 32px);overflow:auto}
+.tour-card img{width:100%;height:150px;object-fit:cover;object-position:center 30%;border-radius:var(--radio-chico);display:block}
+.tour-card .solo-noche{display:none}
+[data-theme="dark"] .tour-card .solo-noche{display:block}
+[data-theme="dark"] .tour-card .solo-dia{display:none}
+.tour-paso{font:600 12px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--tinta-suave)}
+.tour-titulo{margin:0;font-family:var(--font-display);font-weight:700;font-size:24px;line-height:1.05;letter-spacing:-.02em;text-wrap:balance}
+.tour-texto{margin:0;font-size:15px;line-height:1.5}
+.tour-texto b{font-weight:600}
+.tour-puntos{display:flex;gap:6px}
+.tour-puntos i{width:8px;height:8px;border-radius:var(--radio-pildora);background:var(--linea-suave)}
+.tour-puntos i.on{background:var(--tinta)}
+.tour-botones{display:flex;flex-wrap:wrap;gap:var(--espacio-1);align-items:center}
+.tour-botones .espacio{flex:1}
+.tour-saltar{background:transparent;border:0;padding:6px 2px;font:600 14px var(--font-sans);color:var(--tinta-suave);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.tour-saltar:hover{color:var(--tinta)}
+@media (prefers-reduced-motion:no-preference){
+  .tour-card{animation:tour-entra var(--duracion-rapido) var(--curva-salida) both}
+  @keyframes tour-entra{from{opacity:0;transform:translateY(var(--rebote-distancia))}}
+}
+@media (prefers-reduced-motion:reduce){.tour-spot{transition:none}}
+@media (max-width:640px){.tour-card{left:16px!important;right:16px;width:auto!important;top:auto!important;bottom:calc(16px + env(safe-area-inset-bottom,0px))}.tour-card img{height:110px}}

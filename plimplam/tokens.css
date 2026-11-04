@@ -1,0 +1,117 @@
+/* GENERADO por diseno/scripts/construir.py desde diseno/tokens.json. No editar a mano. */
+
+:root, [data-theme="light"] {
+  --papel-100: #f5eee3;
+  --papel-200: #fffaf2;
+  --tinta: #141210;
+  --tinta-suave: #5f574e;
+  --linea-suave: #d8cdbd;
+  --texto-invertido: var(--papel-100);
+  --sobre-color: #141210;
+  --servicio-talleres: #ff8a3d;
+  --servicio-sesiones: #c6f23d;
+  --servicio-entender: #a3b6ff;
+  --servicio-soluciones: #ff9fcf;
+  --acento: var(--servicio-sesiones);
+  --error: #b42f17;
+}
+[data-theme="dark"] {
+  --papel-100: #181512;
+  --papel-200: #221e1a;
+  --tinta: #f5eee3;
+  --tinta-suave: #b8aea1;
+  --linea-suave: #3a332d;
+  --texto-invertido: var(--papel-100);
+  --acento: var(--servicio-sesiones);
+  --error: #ff7a5c;
+}
+:root {
+  --espacio-1: 8px;
+  --espacio-2: 16px;
+  --espacio-3: 24px;
+  --espacio-4: 40px;
+  --espacio-5: 64px;
+  --titular-hero-elevacion: 19vh;
+  --radio-chico: 10px;
+  --radio-tarjeta: 28px;
+  --radio-pildora: 999px;
+  --duracion-instantaneo: 120ms;
+  --duracion-rapido: 240ms;
+  --duracion-medio: 480ms;
+  --duracion-lento: 800ms;
+  --curva-salida: cubic-bezier(0.22, 1, 0.36, 1);
+  --curva-entrada: cubic-bezier(0.64, 0, 0.78, 0);
+  --curva-resorte: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --escalon: 60ms;
+  --desplazamiento: 24px;
+  --desenfoque: 6px;
+  --rebote-distancia: 3px;
+  --tipeo-escribir: 45ms;
+  --tipeo-variacion: 15ms;
+  --tipeo-borrar: 22ms;
+  --tipeo-pausa: 2200ms;
+  --tipeo-pausa-por-letra: 12ms;
+  --tipeo-entre-frases: 350ms;
+  --parpadeo-espera: 2500ms;
+  --parpadeo-variacion: 3500ms;
+  --ojos-suavizado: 70ms;
+  --video-camara: 3000ms;
+  --video-cierre: 2000ms;
+  --font-display: "Bricolage Grotesque", "Arial Black", system-ui, sans-serif;
+  --font-sans: "Instrument Sans", system-ui, -apple-system, sans-serif;
+}
+.display-xl {
+  font-family: var(--font-display);
+  font-size: 96px;
+  line-height: 0.9;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+.display-l {
+  font-family: var(--font-display);
+  font-size: 64px;
+  line-height: 0.95;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.display-l-fluido {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 6cqw, 64px);
+  line-height: 0.95;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.titulo-1 {
+  font-family: var(--font-display);
+  font-size: 40px;
+  line-height: 44px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.titulo-2 {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.cuerpo {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+}
+.cuerpo-chico {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+}
+.etiqueta {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

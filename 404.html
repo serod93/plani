@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Página no encontrada · Plani</title>
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/svg+xml" href="/plani/assets/favicon.svg">
+<script>(function(){var m=matchMedia('(prefers-color-scheme: dark)');function a(){document.documentElement.setAttribute('data-theme',m.matches?'dark':'light')}a();m.addEventListener('change',a)})()</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700..800&family=Instrument+Sans:wght@400..600&display=swap">
+<link rel="stylesheet" href="/plani/plimplam/tokens.css">
+<link rel="stylesheet" href="/plani/assets/marca.css">
+<style>
+/* Rutas absolutas a /plani/: GitHub Pages sirve esta página en cualquier dirección que no exista. */
+body{padding-block:24px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:var(--espacio-3)}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--espacio-2)}
+.hero{background:var(--servicio-entender);color:var(--sobre-color);border-radius:var(--radio-tarjeta);overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);align-items:stretch}
+.hero-texto{padding:var(--espacio-4) var(--espacio-4);display:flex;flex-direction:column;justify-content:center;gap:var(--espacio-2)}
+.hero p.num404{font-family:var(--font-display);font-weight:800;font-size:clamp(88px,16vw,168px);line-height:.85;letter-spacing:-.05em;margin:0}
+.hero h1{margin:0;font-family:var(--font-display);font-weight:800;font-size:clamp(30px,4.6vw,52px);line-height:.98;letter-spacing:-.03em;text-wrap:balance}
+.hero p{margin:0;font-size:16px;line-height:24px;max-width:46ch}
+.hero p.num404{max-width:none}
+.acciones{display:flex;flex-wrap:wrap;gap:var(--espacio-1);margin-top:var(--espacio-1)}
+.hero .btn{border-color:var(--sobre-color);color:var(--sobre-color)}
+.hero .btn.primary{background:var(--sobre-color);color:var(--papel-100)}
+.hero .btn:hover:not(:disabled){background:rgba(255,250,242,.55)}
+.hero .btn.primary:hover:not(:disabled){background:var(--sobre-color);opacity:.85}
+.hero :focus-visible{outline-color:var(--sobre-color)}
+.hero-img{min-height:320px;background:var(--papel-100)}
+.hero-img img{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+.hero-img img.solo-noche{display:none}
+[data-theme="dark"] .hero-img img.solo-noche{display:block}
+[data-theme="dark"] .hero-img img.solo-dia{display:none}
+@media (max-width:760px){.hero{grid-template-columns:minmax(0,1fr)}.hero-texto{padding:var(--espacio-3)}.hero-img{min-height:240px;order:-1}}
+@media (prefers-reduced-motion:no-preference){
+  .wrap>*{animation:entra var(--duracion-medio) var(--curva-salida) both;animation-delay:calc(var(--i,0)*var(--escalon))}
+  .wrap>*:nth-child(2){--i:1}.wrap>*:nth-child(3){--i:2}
+  @keyframes entra{from{opacity:0;transform:translateY(var(--desplazamiento))}}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><a class="logo" href="/plani/" aria-label="plim plam., Plani, inicio">plim plam<i>.</i></a></div>
+
+  <main class="hero">
+    <div class="hero-texto">
+      <p class="num404" aria-hidden="true">404</p>
+      <h1>Aquí no hay nada que planificar</h1>
+      <p>Esta página no existe. Puede que el enlace esté mal escrito o que lo hayamos movido. Plani vive en la página de inicio.</p>
+      <div class="acciones">
+        <a class="btn primary" href="/plani/">Volver a Plani</a>
+        <a class="btn" href="https://www.instagram.com/plimplam.ai/" target="_blank" rel="noopener">Conocer plim plam.</a>
+      </div>
+    </div>
+    <div class="hero-img">
+      <img class="solo-dia" src="/plani/plimplam/hero-persona.webp" alt="Una persona escribe tranquila en su escritorio mientras su sombra, con muchos brazos, ordena papeles, un calendario y un correo.">
+      <img class="solo-noche" src="/plani/plimplam/hero-persona-noche.webp" alt="Una persona escribe tranquila en su escritorio mientras su sombra, con muchos brazos, ordena papeles, un calendario y un correo.">
+    </div>
+  </main>
+
+  <footer class="pie">
+    <span class="logo" role="img" aria-label="plim plam">plim plam<i>.</i></span>
+    <p class="pie-mensaje">Creado con IA y <span role="img" aria-label="cariño">❤️</span> por personas, para serte útil.</p>
+    <p class="pie-links">
+      <span>Plani es una herramienta de plim plam.</span>
+      <a href="https://www.instagram.com/plimplam.ai/" target="_blank" rel="noopener">@plimplam.ai</a>
+      <a href="https://github.com/serod93/plani" target="_blank" rel="noopener">Formato .plani y código</a>
+    </p>
+  </footer>
+</div>
+</body>
+</html>
