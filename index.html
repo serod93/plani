@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Plani</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Plani: planifica la distribución del tiempo de un taller en una línea de tiempo editable y expórtala a PDF, Excel o .plani.">
+<style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: barra de control, resumen con barra apilada, carril único de línea de tiempo con eje de horas, tabla editable de módulos */
+:root{
+  --bg:#f2f5f7; --surface:#ffffff; --surface-2:#e9eef2; --fg:#13232e; --muted:#566874; --line:#d3dce3;
+  --accent:#0b5c8a; --accent-fg:#ffffff; --accent-soft:#dcecf5;
+  --k-expo:#1f5f96; --k-part:#167563; --k-prac:#a45a0a; --k-pausa:#62747f;
+  --warn:#b3261e; --warn-soft:#fbe7e4; --ok:#1d7a46; --ok-soft:#e0f2e8;
+  --font-ui:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1920; --surface:#14252e; --surface-2:#1c313c; --fg:#e5eef3; --muted:#92a6b3; --line:#2a404c;
+  --accent:#5db4e8; --accent-fg:#06222f; --accent-soft:#18394b;
+  --k-expo:#2f74b5; --k-part:#1f8b7a; --k-prac:#a8650f; --k-pausa:#4d5f6b;
+  --warn:#ff8f85; --warn-soft:#3b2220; --ok:#6fd49a; --ok-soft:#173326; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1920; --surface:#14252e; --surface-2:#1c313c; --fg:#e5eef3; --muted:#92a6b3; --line:#2a404c;
+  --accent:#5db4e8; --accent-fg:#06222f; --accent-soft:#18394b;
+  --k-expo:#2f74b5; --k-part:#1f8b7a; --k-prac:#a8650f; --k-pausa:#4d5f6b;
+  --warn:#ff8f85; --warn-soft:#3b2220; --ok:#6fd49a; --ok-soft:#173326; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:14px/1.45 var(--font-ui);
+  padding-block:24px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num,.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+header{display:flex;flex-direction:column;gap:4px}
+.eyebrow{font:500 11px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+header input.title-in{font:700 clamp(24px,4vw,32px)/1.15 var(--font-ui);letter-spacing:-.01em;background:transparent;color:var(--fg);border:0;border-bottom:2px dashed var(--line);border-radius:0;padding:4px 0;width:100%}
+header input.title-in:focus{border-bottom-color:var(--accent);outline:none}
+header input.title-in::placeholder{color:var(--muted);opacity:.7}
+h2{margin:0;font-size:15px;font-weight:600}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.bar-top{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end;justify-content:space-between}
+.grp{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label,.lbl{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+input[type=time],input[type=date],input[type=number],input[type=text],select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
+input[type=time],input[type=date]{font-family:var(--font-mono)}
+input[type=time]{width:104px}
+.total{display:flex;flex-direction:column;gap:2px}
+.total b{font-size:22px;font-weight:600;line-height:1.1}
+.total span{font-size:12px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{background:var(--bg);border:0;padding:7px 12px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);font-weight:600}
+.btn{background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:7px 12px}
+.btn:hover:not(:disabled){background:var(--surface-2)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.btn.primary:hover{filter:brightness(1.08);background:var(--accent)}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+
+.summary{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:16px 28px;align-items:center}
+.sum-main{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.sum-main .big{font-size:26px;font-weight:600;line-height:1.1}
+.sum-main .sub{font-size:12px;color:var(--muted)}
+.chip{display:inline-block;border-radius:99px;padding:2px 10px;font-size:12px;font-weight:600;background:var(--surface-2);color:var(--muted)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.stack{display:flex;height:22px;border-radius:5px;overflow:hidden;background:var(--surface-2)}
+.stack i{display:block;height:100%}
+.stack .free{background:repeating-linear-gradient(135deg,var(--line) 0 5px,transparent 5px 10px)}
+.legend{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px}
+.legend li{display:flex;align-items:center;gap:6px}
+.legend .sw{width:10px;height:10px;border-radius:2px;flex:none}
+.legend .sw.free{background:repeating-linear-gradient(135deg,var(--muted) 0 2px,transparent 2px 4px)}
+.mix{margin:10px 0 0;font-size:12.5px;color:var(--muted)}
+
+.tl-head{display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.hint{font-size:12.5px;color:var(--muted)}
+.scroll{overflow-x:auto;overflow-y:hidden;padding-bottom:4px}
+.track{position:relative;height:178px;user-select:none;-webkit-user-select:none}
+.lane{position:absolute;left:0;right:0;top:34px;height:104px;border-radius:6px;background:var(--surface-2)}
+.out{position:absolute;top:34px;height:104px;background:repeating-linear-gradient(135deg,var(--line) 0 4px,transparent 4px 9px);opacity:.75;pointer-events:none}
+.gl{position:absolute;top:34px;height:104px;width:1px;background:var(--line);pointer-events:none}
+.flag{position:absolute;top:0;height:136px;border-left:2px dashed var(--accent);pointer-events:none}
+.flag span{position:absolute;top:0;white-space:nowrap;font:500 11px var(--font-mono);color:var(--accent);background:var(--surface);padding:2px 6px;border-radius:4px}
+.flag.s span{left:4px}.flag.e span{right:4px}
+.ruler{position:absolute;left:0;right:0;top:142px;height:30px;border-top:1px solid var(--line)}
+.tick{position:absolute;top:0;border-left:1px solid var(--line);height:6px}
+.tick.h{height:10px;border-color:var(--muted)}
+.tick em{position:absolute;top:11px;left:3px;font:400 11px var(--font-mono);font-style:normal;color:var(--muted);white-space:nowrap}
+
+.mod{position:absolute;top:34px;height:104px;border-radius:6px;padding:8px 14px 6px;color:#fff;overflow:hidden;cursor:default;
+  display:flex;flex-direction:column;gap:3px;border:2px solid transparent;background:var(--kc);z-index:2}
+.k-expo{--kc:var(--k-expo)}.k-part{--kc:var(--k-part)}.k-prac{--kc:var(--k-prac)}
+.k-pausa{--kc:var(--k-pausa)}
+.mod.k-pausa{background:repeating-linear-gradient(135deg,var(--k-pausa) 0 8px,color-mix(in srgb,var(--k-pausa) 82%,#000) 8px 16px)}
+.mod .nm{font-size:12px;font-weight:600;line-height:1.25;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.mod .du{font:500 11px var(--font-mono);margin-top:auto}
+.mod .tm{font:400 10.5px var(--font-mono);opacity:.85;white-space:nowrap}
+.mod.tiny .tm{display:none}
+.mod.sel{border-color:var(--fg);box-shadow:0 0 0 2px var(--surface)}
+.mod.drag{z-index:5;opacity:.94}
+.mod.drag.conflict{border-color:var(--warn)}
+.mod.hit::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,var(--warn) 0 6px,transparent 6px 12px);opacity:.6;pointer-events:none}
+.h{position:absolute;top:0;bottom:0;width:14px;padding:0;border:0;background:transparent;cursor:ew-resize;touch-action:none;z-index:3}
+.h.hl{left:0}.h.hr{right:0}
+.h::after{content:"";position:absolute;top:50%;left:50%;width:3px;height:26px;transform:translate(-50%,-50%);border-radius:2px;background:rgba(255,255,255,.7)}
+.h:hover::after,.h:focus-visible::after{background:#fff;height:34px}
+.h:focus-visible{outline:2px solid #fff;outline-offset:-3px}
+.gap{position:absolute;top:34px;height:104px;border:1.5px dashed var(--muted);border-radius:6px;background:transparent;color:var(--muted);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;overflow:hidden;z-index:1;font-size:11px}
+.gap:hover{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.gap b{font-size:20px;font-weight:500;line-height:1}
+.gap .mono{white-space:nowrap}
+.bubble{position:absolute;top:8px;transform:translateX(-50%);z-index:9;background:var(--fg);color:var(--bg);font:500 12px var(--font-mono);padding:4px 8px;border-radius:5px;white-space:nowrap;pointer-events:none}
+.bubble.warn{background:var(--warn);color:#fff}
+
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:720px}
+th{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 8px 8px}
+td{padding:5px 8px;border-top:1px solid var(--line);vertical-align:middle}
+tr.sel td{background:var(--accent-soft)}
+td.n{width:32px;color:var(--muted);font:400 12px var(--font-mono)}
+td input[type=text]{width:100%;min-width:200px}
+td input[type=number]{width:76px;font-family:var(--font-mono)}
+td select{border-left:6px solid var(--kc)}
+.u{font-size:12px;color:var(--muted);margin-left:4px}
+.del{background:transparent;border:1px solid transparent;border-radius:6px;width:30px;height:30px;color:var(--muted);font-size:18px;line-height:1}
+.del:hover{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.empty{padding:20px 8px;color:var(--muted)}
+.tg{background:transparent;border:1px solid var(--line);border-radius:6px;padding:4px 9px;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.tg:hover{background:var(--surface-2)}
+.tg[aria-expanded=true]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.tg.has::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-left:6px;vertical-align:middle}
+tr.detail td{border-top:0;padding:0 8px 12px 40px}
+.card{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px}
+.card input[type=text],.card textarea{width:100%;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font:inherit;color:inherit}
+.card textarea{resize:vertical;min-height:84px}
+
+#dlg{position:fixed;inset:0;z-index:50;background:rgba(5,15,22,.55);display:flex;align-items:center;justify-content:center;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
+#dlg .box{background:var(--surface);border:1px solid var(--line);border-radius:12px;width:min(520px,100%);max-height:100%;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+#dlg h3{margin:0;font-size:17px;font-weight:600;text-wrap:balance}
+#dlg p{margin:0;color:var(--muted)}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:3px}
+.opt:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}
+.opt:disabled{opacity:.55;cursor:default}
+.opt b{font-weight:600}
+.opt span{font-size:12.5px;color:var(--muted)}
+#dlg .cancel{align-self:flex-end}
+.cks{display:flex;flex-direction:column}
+.cks .grp-l{font:500 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 0 4px}
+.ck{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);cursor:pointer}
+.ck input{margin-top:3px;width:16px;height:16px;flex:none;accent-color:var(--accent)}
+.ck b{font-weight:600}
+.ck em{display:block;font-style:normal;font-size:12.5px;color:var(--muted)}
+.ck.off{opacity:.55;cursor:default}
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+.btns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--fg);color:var(--bg);
+  border-radius:8px;padding:9px 14px;display:flex;gap:14px;align-items:center;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgba(0,0,0,.25)}
+#toast button{background:transparent;border:0;color:inherit;font-weight:700;text-decoration:underline;padding:0}
+.copybox{width:100%;min-height:150px;font:12px/1.5 var(--font-mono);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:10px;margin-top:12px}
+
+@media (max-width:720px){
+  .summary{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:no-preference){#toast{animation:up .18s ease-out}@keyframes up{from{opacity:0;transform:translate(-50%,8px)}}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Plani · Distribución del taller</div>
+    <input id="title" class="title-in" type="text" placeholder="Nombre de la actividad" aria-label="Nombre de la actividad" maxlength="120">
+  </header>
+
+  <section class="panel bar-top" aria-label="Horario y unidades">
+    <div class="grp">
+      <div class="field"><label for="ws-date">Fecha</label><input id="ws-date" type="date"></div>
+      <div class="field"><label for="ws-start">Inicio</label><input id="ws-start" type="time" step="300"></div>
+      <div class="field"><label for="ws-end">Término</label><input id="ws-end" type="time" step="300"></div>
+      <div class="total" id="total"></div>
+      <div class="field"><span class="lbl">Mostrar duraciones en</span>
+        <div class="seg" role="group" aria-label="Unidad"><button type="button" id="u-min" aria-pressed="true">Minutos</button><button type="button" id="u-h" aria-pressed="false">Horas</button></div>
+      </div>
+    </div>
+    <div class="acts">
+      <button class="btn" id="undo" type="button">Deshacer</button>
+      <button class="btn" id="reset" type="button">Vaciar módulos</button>
+      <button class="btn" id="copy" type="button">Copiar cronograma</button>
+      <button class="btn" id="x-imp" type="button" title="Abrir un taller guardado como .plani">Importar .plani</button>
+      <input type="file" id="f-imp" accept=".plani,.json,application/json" hidden>
+      <button class="btn primary" id="x-pdf" type="button" hidden>Exportar PDF</button>
+      <button class="btn primary" id="x-xls" type="button" hidden>Exportar Excel</button>
+      <button class="btn" id="x-plani" type="button" hidden title="Archivo editable para importar en la app Plani">Guardar para Plani</button>
+    </div>
+  </section>
+
+  <section class="panel summary" id="summary" aria-live="polite"></section>
+
+  <section class="panel">
+    <div class="tl-head">
+      <h2>Línea de tiempo</h2>
+      <span class="hint">Arrastra el borde de un módulo para cambiar su inicio o su término (de a 5 min). También funcionan las flechas del teclado.</span>
+    </div>
+    <div class="scroll" id="scroll"><div class="track" id="track"></div></div>
+  </section>
+
+  <section class="panel">
+    <div class="tl-head">
+      <h2>Módulos</h2>
+      <span class="hint">«Ficha» abre la descripción, el responsable y los recursos de cada módulo.</span>
+      <button class="btn primary" id="add" type="button">+ Agregar módulo</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Módulo</th><th>Tipo</th><th>Inicio</th><th>Término</th><th>Duración</th><th>Ficha</th><th><span class="sr" hidden>Eliminar</span></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div id="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="dlg-t"></div>
+<div id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function(){
+const MIN=5, KEY='distribucion-taller-v2';
+const KINDS={expo:'Expositiva',part:'Participativa',prac:'Práctica',pausa:'Pausa'};
+const $=s=>document.querySelector(s);
+const p2=n=>String(n).padStart(2,'0');
+const hm=t=>p2(Math.floor(t/60))+':'+p2(((t%60)+60)%60);
+const parse=v=>{const m=/^(\d{1,2}):(\d{2})/.exec(v||'');return m?(+m[1])*60+(+m[2]):null};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const sortMods=a=>a.slice().sort((x,y)=>x.start-y.start||x.end-y.end);
+const infoOf=m=>({resp:(m.resp||'').trim(),desc:(m.desc||'').trim(),res:(m.res||'').split('\n').map(x=>x.trim()).filter(Boolean)});
+const hasInfo=m=>{const i=infoOf(m);return !!(i.resp||i.desc||i.res.length)};
+const openIds=new Set();
+
+function seed(){return {ws:{start:540,end:780},nid:1,unit:'min',title:'',date:'',mods:[]}}
+
+function load(){
+  try{
+    const o=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(o&&o.ws&&Array.isArray(o.mods)&&o.mods.every(m=>KINDS[m.kind]&&Number.isFinite(m.start)&&Number.isFinite(m.end))) return o;
+  }catch(e){}
+  return seed();
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+let S=load(); S.mods=sortMods(S.mods); S.unit=S.unit==='h'?'h':'min'; S.nid=S.nid||(Math.max(0,...S.mods.map(m=>m.id))+1); S.title=S.title||''; S.date=S.date||'';
+let sel=null, pv=null, ppm=4, undo=[], refocus=null, toastT=0;
+
+/* unidades */
+const nf=new Intl.NumberFormat('es-CL',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fd=m=>S.unit==='h'?nf.format(m/60)+' h':m+' min';
+const fl=m=>S.unit==='h'?m+' min':Math.floor(m/60)+' h '+p2(m%60)+' min';
+
+/* lógica de bordes */
+function plan(mods,id,edge,t){
+  const c=sortMods(clone(mods)), i=c.findIndex(m=>m.id===id), m=c[i];
+  let conflict=null;
+  if(edge==='end'){
+    t=Math.max(t,m.start+MIN); m.end=t;
+    const n=c[i+1];
+    if(n&&t>n.start) conflict={side:'end',other:n.id,overlap:t-n.start,canTrim:n.end-t>=MIN,t};
+  }else{
+    t=Math.min(t,m.end-MIN); m.start=t;
+    const p=c[i-1];
+    if(p&&t<p.end) conflict={side:'start',other:p.id,overlap:p.end-t,canTrim:t-p.start>=MIN,t};
+  }
+  return {mods:c,conflict,id};
+}
+function resolve(base,id,edge,t,how){
+  const p=plan(base,id,edge,t), c=p.mods, i=c.findIndex(m=>m.id===id), k=p.conflict;
+  if(!k) return c;
+  if(how==='trim'){const o=c.find(m=>m.id===k.other); if(k.side==='end')o.start=k.t; else o.end=k.t;}
+  else if(k.side==='end'){for(let j=i+1;j<c.length;j++){c[j].start+=k.overlap;c[j].end+=k.overlap}}
+  else{for(let j=0;j<i;j++){c[j].start-=k.overlap;c[j].end-=k.overlap}}
+  return sortMods(c);
+}
+function snapState(){return {ws:clone(S.ws),mods:clone(S.mods),nid:S.nid}}
+function pushUndo(){undo.push(JSON.stringify(snapState()));if(undo.length>60)undo.shift()}
+function mutate(fn,opt){
+  pushUndo(); fn(); S.mods=sortMods(S.mods); pv=null; save(); renderAll();
+}
+function commit(mods){
+  if(JSON.stringify(sortMods(mods))===JSON.stringify(S.mods)){pv=null;renderAll();return}
+  mutate(()=>{S.mods=mods});
+}
+function doUndo(){
+  const s=undo.pop(); if(!s)return;
+  const o=JSON.parse(s); S.ws=o.ws;S.mods=sortMods(o.mods);S.nid=o.nid; pv=null; save(); renderAll();
+}
+
+/* vista */
+function computeView(mods){
+  let lo=S.ws.start,hi=S.ws.end;
+  mods.forEach(m=>{lo=Math.min(lo,m.start);hi=Math.max(hi,m.end)});
+  return {start:Math.floor((lo-30)/30)*30,end:Math.ceil((hi+30)/30)*30};
+}
+function stats(){
+  const total=S.ws.end-S.ws.start; let covered=0,excess=0; const by={expo:0,part:0,prac:0,pausa:0};
+  S.mods.forEach(m=>{const d=m.end-m.start;by[m.kind]+=d;const c=Math.max(0,Math.min(m.end,S.ws.end)-Math.max(m.start,S.ws.start));covered+=c;excess+=d-c});
+  return {total,covered,excess,free:Math.max(0,total-covered),by,assigned:covered+excess};
+}
+function gaps(){
+  const out=[];let cur=S.ws.start;
+  for(const m of S.mods){ if(m.start>cur&&cur<S.ws.end) out.push([cur,Math.min(m.start,S.ws.end)]); cur=Math.max(cur,m.end) }
+  if(cur<S.ws.end) out.push([cur,S.ws.end]);
+  return out.filter(g=>g[1]-g[0]>=MIN);
+}
+
+/* render */
+function renderTop(){
+  $('#ws-start').value=hm(S.ws.start); $('#ws-end').value=hm(S.ws.end);
+  const t=S.ws.end-S.ws.start;
+  $('#total').innerHTML=`<span class="lbl">Duración del taller</span><b class="num">${fd(t)}</b><span class="num">${fl(t)}</span>`;
+  $('#u-min').setAttribute('aria-pressed',S.unit==='min'); $('#u-h').setAttribute('aria-pressed',S.unit==='h');
+  $('#undo').disabled=!undo.length;
+}
+function renderSummary(){
+  const s=stats(), den=Math.max(1,s.total+s.excess);
+  const segs=Object.keys(KINDS).filter(k=>s.by[k]>0).map(k=>`<i style="width:${s.by[k]/den*100}%;background:var(--k-${k})" title="${KINDS[k]}: ${s.by[k]} min"></i>`).join('')
+    +(s.free>0?`<i class="free" style="width:${s.free/den*100}%" title="Sin asignar: ${s.free} min"></i>`:'');
+  const leg=Object.keys(KINDS).map(k=>`<li><span class="sw" style="background:var(--k-${k})"></span>${KINDS[k]} <b class="num">${fd(s.by[k])}</b></li>`).join('')
+    +`<li><span class="sw free"></span>Sin asignar <b class="num">${fd(s.free)}</b></li>`;
+  const chip=s.excess>0?`<span class="chip warn">Excede el horario por ${fd(s.excess)}</span>`
+    :s.free>0?`<span class="chip">${fd(s.free)} sin asignar</span>`:`<span class="chip ok">Horario completo</span>`;
+  const exp=s.by.expo, par=s.by.part+s.by.prac, work=exp+par;
+  const mix=work?`Exposición ${fd(exp)} · Trabajo de participantes ${fd(par)} (${Math.round(par/work*100)} % del tiempo de trabajo, sin contar pausas).`:'Aún no hay tiempo de trabajo asignado.';
+  $('#summary').innerHTML=`<div class="sum-main"><span class="lbl">Asignado</span><div class="big num">${fd(s.assigned)}</div><div class="sub num">de ${fd(Math.max(0,s.total))} del taller</div>${chip}</div>
+    <div><div class="stack">${segs}</div><ul class="legend">${leg}</ul><p class="mix">${mix}</p></div>`;
+}
+
+function renderLane(){
+  const track=$('#track'), wrap=$('#scroll');
+  const pl=pv?plan(pv.base,pv.id,pv.edge,pv.t):null;
+  const mods=pl?pl.mods:S.mods, conflict=pl&&pl.conflict;
+  const view=pv?pv.view:computeView(S.mods);
+  if(pv) ppm=pv.ppm; else ppm=Math.max(3.4,wrap.clientWidth/(view.end-view.start));
+  const X=t=>(t-view.start)*ppm, W=(view.end-view.start)*ppm;
+  track.style.width=W+'px';
+  let h='';
+  if(S.ws.start>view.start) h+=`<div class="out" style="left:0;width:${X(S.ws.start)}px"></div>`;
+  if(S.ws.end<view.end) h+=`<div class="out" style="left:${X(S.ws.end)}px;width:${X(view.end)-X(S.ws.end)}px"></div>`;
+  h+=`<div class="lane"></div>`;
+  let ticks='';
+  for(let t=Math.ceil(view.start/15)*15;t<=view.end;t+=15){
+    const hr=t%60===0;
+    if(!hr&&ppm<3.8&&t%30)continue;
+    ticks+=`<div class="tick${hr?' h':''}" style="left:${X(t)}px">${hr?`<em>${hm(t)}</em>`:''}</div>`;
+    if(hr) h+=`<div class="gl" style="left:${X(t)}px"></div>`;
+  }
+  h+=`<div class="ruler">${ticks}</div>`;
+  h+=`<div class="flag s" style="left:${X(S.ws.start)}px"><span>Inicio ${hm(S.ws.start)}</span></div><div class="flag e" style="left:${X(S.ws.end)}px"><span>Término ${hm(S.ws.end)}</span></div>`;
+  if(!pv) gaps().forEach(g=>{h+=`<button type="button" class="gap" data-g0="${g[0]}" data-g1="${g[1]}" style="left:${X(g[0])+1}px;width:${X(g[1])-X(g[0])-2}px" aria-label="Agregar módulo de ${g[1]-g[0]} min a las ${hm(g[0])}"><b>+</b><span class="mono">${g[1]-g[0]} min</span></button>`});
+  mods.forEach(m=>{
+    const w=(m.end-m.start)*ppm, isD=pv&&pv.id===m.id, hit=conflict&&conflict.other===m.id;
+    h+=`<div class="mod k-${m.kind}${sel===m.id?' sel':''}${isD?' drag':''}${isD&&conflict?' conflict':''}${hit?' hit':''}${w<110?' tiny':''}" data-id="${m.id}" style="left:${X(m.start)}px;width:${w}px" title="${esc(m.name)} · ${hm(m.start)}–${hm(m.end)} · ${m.end-m.start} min">
+      <button type="button" class="h hl" data-edge="start" aria-label="Inicio de ${esc(m.name)}: ${hm(m.start)}. Flechas izquierda y derecha para mover"></button>
+      <div class="nm">${esc(m.name)}</div><div class="du">${fd(m.end-m.start)}</div><div class="tm">${hm(m.start)}–${hm(m.end)}</div>
+      <button type="button" class="h hr" data-edge="end" aria-label="Término de ${esc(m.name)}: ${hm(m.end)}. Flechas izquierda y derecha para mover"></button></div>`;
+  });
+  if(pv){
+    const m=mods.find(x=>x.id===pv.id), t=pv.edge==='end'?m.end:m.start;
+    h+=`<div class="bubble${conflict?' warn':''}" style="left:${X(t)}px">${hm(t)} · ${fd(m.end-m.start)}${conflict?' · se superpone '+conflict.overlap+' min':''}</div>`;
+  }
+  track.innerHTML=h;
+  if(refocus){const el=track.querySelector(`[data-id="${refocus.id}"] [data-edge="${refocus.edge}"]`);if(el)el.focus();refocus=null}
+}
+
+function renderRows(){
+  const body=$('#rows');
+  if(!S.mods.length){body.innerHTML=`<tr><td colspan="8" class="empty">No hay módulos. Agrega el primero con el botón de arriba o toca un espacio vacío de la línea de tiempo.</td></tr>`;return}
+  const inH=S.unit==='h';
+  body.innerHTML=S.mods.map((m,i)=>{
+    const d=m.end-m.start, op=openIds.has(m.id);
+    let h=`<tr data-id="${m.id}" class="${sel===m.id?'sel':''}">
+      <td class="n">${i+1}</td>
+      <td><input type="text" id="nm-${m.id}" data-f="name" value="${esc(m.name)}" aria-label="Nombre del módulo ${i+1}"></td>
+      <td><select id="kd-${m.id}" data-f="kind" class="k-${m.kind}" aria-label="Tipo del módulo ${i+1}">${Object.keys(KINDS).map(k=>`<option value="${k}"${k===m.kind?' selected':''}>${KINDS[k]}</option>`).join('')}</select></td>
+      <td><input type="time" step="300" id="st-${m.id}" data-f="start" value="${hm(m.start)}" aria-label="Inicio del módulo ${i+1}"></td>
+      <td><input type="time" step="300" id="en-${m.id}" data-f="end" value="${hm(m.end)}" aria-label="Término del módulo ${i+1}"></td>
+      <td><input type="number" id="du-${m.id}" data-f="dur" min="${inH?0.1:MIN}" step="${inH?0.25:5}" value="${inH?+(d/60).toFixed(2):d}" aria-label="Duración del módulo ${i+1}"><span class="u">${inH?'h':'min'}</span></td>
+      <td><button type="button" class="tg${hasInfo(m)?' has':''}" data-tg="${m.id}" aria-expanded="${op}" aria-controls="dt-${m.id}">${op?'▾':'▸'} Ficha</button></td>
+      <td><button type="button" class="del" data-del="${m.id}" aria-label="Eliminar ${esc(m.name)}">×</button></td></tr>`;
+    if(op) h+=`<tr class="detail${sel===m.id?' sel':''}" id="dt-${m.id}" data-id="${m.id}"><td colspan="8"><div class="card">
+      <div class="field"><label for="ds-${m.id}">Descripción</label><textarea id="ds-${m.id}" data-f="desc" rows="4" placeholder="Qué se hace en este módulo y qué se espera lograr">${esc(m.desc||'')}</textarea></div>
+      <div class="field"><label for="rp-${m.id}">Responsable</label><input type="text" id="rp-${m.id}" data-f="resp" value="${esc(m.resp||'')}" placeholder="Quién conduce este módulo"></div>
+      <div class="field"><label for="rc-${m.id}">Recursos necesarios</label><textarea id="rc-${m.id}" data-f="res" rows="4" placeholder="Uno por línea: proyector, papelógrafos, plumones">${esc(m.res||'')}</textarea></div></div></td></tr>`;
+    return h;
+  }).join('');
+}
+function renderAll(){renderTop();renderSummary();renderLane();renderRows()}
+
+/* diálogo de conflicto */
+function openDialog(){
+  const p=plan(pv.base,pv.id,pv.edge,pv.t), k=p.conflict; if(!k){cancel();return}
+  const me=p.mods.find(m=>m.id===pv.id), ot=p.mods.find(m=>m.id===k.other), i=p.mods.findIndex(m=>m.id===pv.id);
+  const otLen=ot.end-ot.start, nm=`<b>${esc(me.name)}</b>`, on=`<b>${esc(ot.name)}</b>`;
+  let intro, trimT, trimD, shiftD;
+  if(k.side==='end'){
+    intro=`Si ${nm} termina a las <b class="mono">${hm(k.t)}</b>, se superpone <b>${k.overlap} min</b> con ${on}, que parte a las ${hm(ot.start)}.`;
+    const newLen=otLen-k.overlap;
+    trimD=k.canTrim?`${esc(ot.name)} pasa de ${fd(otLen)} a ${fd(newLen)} y parte a las ${hm(k.t)}. El resto del cronograma no se mueve.`:`No alcanza: ${esc(ot.name)} quedaría con menos de ${MIN} min.`;
+    const rest=p.mods.slice(i+1), last=Math.max(...rest.map(m=>m.end))+k.overlap;
+    shiftD=`Todo lo que sigue se corre ${fd(k.overlap)} hacia más tarde y cada duración se mantiene. El último módulo terminaría a las ${hm(last)}${last>S.ws.end?`, ${fd(last-S.ws.end)} después del término fijado`:''}.`;
+    trimT=`Recortar ${ot.name}`;
+  }else{
+    intro=`Si ${nm} empieza a las <b class="mono">${hm(k.t)}</b>, se superpone <b>${k.overlap} min</b> con ${on}, que termina a las ${hm(ot.end)}.`;
+    const newLen=otLen-k.overlap;
+    trimD=k.canTrim?`${esc(ot.name)} pasa de ${fd(otLen)} a ${fd(newLen)} y termina a las ${hm(k.t)}. El resto del cronograma no se mueve.`:`No alcanza: ${esc(ot.name)} quedaría con menos de ${MIN} min.`;
+    const rest=p.mods.slice(0,i), first=Math.min(...rest.map(m=>m.start))-k.overlap;
+    shiftD=`Todo lo anterior se corre ${fd(k.overlap)} hacia más temprano y cada duración se mantiene. El primer módulo empezaría a las ${hm(first)}${first<S.ws.start?`, ${fd(S.ws.start-first)} antes del inicio fijado`:''}.`;
+    trimT=`Recortar ${ot.name}`;
+  }
+  const d=$('#dlg');
+  d.innerHTML=`<div class="box"><h3 id="dlg-t">Este cambio choca con otro módulo</h3><p>${intro}</p>
+    <div class="opts">
+      <button type="button" class="opt" data-how="trim"${k.canTrim?'':' disabled'}><b>${esc(trimT)}</b><span>${trimD}</span></button>
+      <button type="button" class="opt" data-how="shift"><b>Desplazar el cronograma</b><span>${shiftD}</span></button>
+    </div>
+    <button type="button" class="btn cancel" data-how="cancel">Cancelar</button></div>`;
+  d.hidden=false; pv.drag=false; renderLane();
+  const first=d.querySelector('.opt:not(:disabled)'); if(first)first.focus();
+}
+function closeDialog(){const d=$('#dlg');d.hidden=true;d.innerHTML=''}
+function cancel(){pv=null;closeDialog();renderAll()}
+$('#dlg').addEventListener('click',e=>{
+  const pr=e.target.closest('[data-preset]'); if(pr){applyPreset(pr.dataset.preset);return}
+  const b=e.target.closest('[data-how]');
+  if(!b){ if(e.target.id==='dlg')cancel(); return }
+  const how=b.dataset.how; if(how==='cancel'){cancel();return}
+  if(how==='pdf'){const o=readExportOpts();S.pdf=o;save();closeDialog();exportPdf(o);return}
+  if(!pv)return;
+  const mods=resolve(pv.base,pv.id,pv.edge,pv.t,how); closeDialog(); commit(mods);
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#dlg').hidden)cancel()});
+
+/* solicitar cambio de borde (tabla, teclado) */
+function requestEdge(id,edge,t){
+  const m=S.mods.find(x=>x.id===id); if(!m)return;
+  t=Math.max(0,Math.min(1440,Math.round(t)));
+  const p=plan(S.mods,id,edge,t);
+  if(!p.conflict){commit(p.mods);return}
+  const view=computeView(S.mods); view.end+=60;
+  pv={id,edge,base:clone(S.mods),t,view,ppm};
+  sel=id; openDialog();
+}
+
+/* arrastre */
+const track=$('#track');
+track.addEventListener('pointerdown',e=>{
+  const h=e.target.closest('.h'); if(!h||pv)return;
+  e.preventDefault();
+  const id=+h.closest('.mod').dataset.id, edge=h.dataset.edge, m=S.mods.find(x=>x.id===id);
+  const view=computeView(S.mods); view.end+=60;
+  pv={id,edge,base:clone(S.mods),t:edge==='end'?m.end:m.start,view,ppm,drag:true,moved:false,pid:e.pointerId};
+  sel=id; try{track.setPointerCapture(e.pointerId)}catch(_){}
+  renderLane(); renderRows();
+});
+track.addEventListener('pointermove',e=>{
+  if(!pv||!pv.drag||e.pointerId!==pv.pid)return;
+  const r=track.getBoundingClientRect();
+  let t=pv.view.start+(e.clientX-r.left)/pv.ppm; t=Math.round(t/5)*5; t=Math.max(pv.view.start,Math.min(pv.view.end,t));
+  if(t!==pv.t){pv.t=t;pv.moved=true;renderLane()}
+});
+function endDrag(e,ok){
+  if(!pv||!pv.drag||e.pointerId!==pv.pid)return;
+  try{track.releasePointerCapture(e.pointerId)}catch(_){}
+  if(!ok||!pv.moved){pv=null;renderLane();return}
+  const p=plan(pv.base,pv.id,pv.edge,pv.t);
+  if(p.conflict){openDialog()}else commit(p.mods);
+}
+track.addEventListener('pointerup',e=>endDrag(e,true));
+track.addEventListener('pointercancel',e=>endDrag(e,false));
+track.addEventListener('keydown',e=>{
+  const h=e.target.closest('.h'); if(!h||pv)return;
+  if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
+  e.preventDefault();
+  const id=+h.closest('.mod').dataset.id, edge=h.dataset.edge, m=S.mods.find(x=>x.id===id);
+  refocus={id,edge};
+  requestEdge(id,edge,(edge==='end'?m.end:m.start)+(e.key==='ArrowRight'?MIN:-MIN));
+});
+track.addEventListener('click',e=>{
+  const g=e.target.closest('.gap');
+  if(g){addMod(+g.dataset.g0,+g.dataset.g1);return}
+  const mo=e.target.closest('.mod'); if(mo&&!e.target.closest('.h')){sel=+mo.dataset.id;renderLane();renderRows()}
+});
+
+/* tabla */
+const rows=$('#rows');
+rows.addEventListener('focusin',e=>{
+  const tr=e.target.closest('tr[data-id]'); if(!tr)return; const id=+tr.dataset.id;
+  if(sel!==id){sel=id;rows.querySelectorAll('tr').forEach(r=>r.classList.toggle('sel',+r.dataset.id===id));renderLane()}
+});
+rows.addEventListener('input',e=>{
+  const el=e.target,f=el.dataset.f; if(!f)return;
+  const id=+el.closest('tr').dataset.id, m=S.mods.find(x=>x.id===id); if(!m)return;
+  if(f==='name'){m.name=el.value;renderLane();return}
+  if(f==='desc'||f==='resp'||f==='res'){m[f]=el.value;save();const b=rows.querySelector(`[data-tg="${id}"]`);if(b)b.classList.toggle('has',hasInfo(m))}
+});
+rows.addEventListener('change',e=>{
+  const el=e.target,f=el.dataset.f; if(!f)return;
+  const id=+el.closest('tr').dataset.id, m=S.mods.find(x=>x.id===id); if(!m)return;
+  if(f==='desc'||f==='resp'||f==='res'){save();return}
+  if(f==='name'){m.name=el.value.trim()||'Sin nombre';save();renderAll();return}
+  if(f==='kind'){mutate(()=>{m.kind=el.value});return}
+  if(f==='start'||f==='end'){const t=parse(el.value); if(t==null){renderRows();return} requestEdge(id,f,t);renderRows();return}
+  if(f==='dur'){
+    let v=parseFloat(String(el.value).replace(',','.')); if(!(v>0)){renderRows();return}
+    const d=Math.max(MIN,Math.round(S.unit==='h'?v*60:v)); requestEdge(id,'end',m.start+d);renderRows();return
+  }
+});
+rows.addEventListener('click',e=>{
+  const tg=e.target.closest('[data-tg]');
+  if(tg){const id=+tg.dataset.tg; if(openIds.has(id))openIds.delete(id); else openIds.add(id); renderRows();
+    const el=openIds.has(id)?$('#ds-'+id):rows.querySelector(`[data-tg="${id}"]`); if(el)el.focus(); return}
+  const b=e.target.closest('[data-del]'); if(!b)return;
+  const id=+b.dataset.del, m=S.mods.find(x=>x.id===id); if(!m)return;
+  mutate(()=>{S.mods=S.mods.filter(x=>x.id!==id)});
+  if(sel===id)sel=null; renderAll();
+  toast(`Módulo eliminado: ${m.name}`,'Deshacer',doUndo);
+});
+
+/* acciones */
+function addMod(a,b){
+  const len=a!=null?b-a:15; let st=a;
+  if(st==null){
+    const g=gaps().find(g=>g[1]-g[0]>=15);
+    st=g?g[0]:Math.max(S.ws.start,...S.mods.map(m=>m.end),S.ws.start);
+  }
+  const id=S.nid;
+  mutate(()=>{S.nid++;S.mods.push({id,name:'Nuevo módulo',kind:'part',desc:'',resp:'',res:'',start:st,end:st+(a!=null?len:15)})});
+  sel=id; renderAll();
+  const inp=$('#nm-'+id); if(inp){inp.focus();inp.select()}
+}
+$('#add').addEventListener('click',()=>addMod());
+$('#undo').addEventListener('click',doUndo);
+$('#reset').addEventListener('click',()=>{if(!S.mods.length)return;mutate(()=>{S.mods=[]});sel=null;renderAll();toast('Se vaciaron los módulos','Deshacer',doUndo)});
+$('#u-min').addEventListener('click',()=>{S.unit='min';save();renderAll()});
+$('#u-h').addEventListener('click',()=>{S.unit='h';save();renderAll()});
+function wsChange(){
+  const a=parse($('#ws-start').value), b=parse($('#ws-end').value);
+  if(a==null||b==null||b<=a){toast('El término debe ser posterior al inicio');renderTop();return}
+  mutate(()=>{S.ws={start:a,end:b}});
+}
+$('#ws-start').addEventListener('change',wsChange);$('#ws-end').addEventListener('change',wsChange);
+
+function fmtDate(iso){const d=new Date(iso+'T12:00:00');return isNaN(d)?iso:d.toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+function scheduleText(){
+  const s=stats(), head=(S.title.trim()||'Distribución del taller')+(S.date?' · '+fmtDate(S.date):'');
+  return `${head}\nHorario: ${hm(S.ws.start)} a ${hm(S.ws.end)} (${s.total} min)\n\n`
+    +S.mods.map(m=>{let t=`${hm(m.start)}–${hm(m.end)} · ${m.name} · ${m.end-m.start} min · ${KINDS[m.kind]}`; const i=infoOf(m);
+      if(i.resp)t+=`\n    Responsable: ${i.resp}`; if(i.desc)t+=`\n    Descripción: ${i.desc.replace(/\s*\n\s*/g,' ')}`; if(i.res.length)t+=`\n    Recursos: ${i.res.join('; ')}`; return t}).join('\n')
+    +`\n\nAsignado: ${s.assigned} min · Sin asignar: ${s.free} min`+(s.excess?` · Fuera del horario: ${s.excess} min`:'');
+}
+$('#copy').addEventListener('click',async()=>{
+  const txt=scheduleText();
+  try{await navigator.clipboard.writeText(txt);toast('Cronograma copiado')}
+  catch(e){
+    const d=$('#dlg'); pv=null;
+    d.innerHTML=`<div class="box"><h3 id="dlg-t">Copia el cronograma</h3><p>Tu navegador no permitió copiar automáticamente. Selecciona el texto y cópialo.</p><textarea class="copybox" readonly id="cp">${esc(txt)}</textarea><button type="button" class="btn cancel" data-how="cancel">Cerrar</button></div>`;
+    d.hidden=false; const ta=$('#cp'); ta.focus(); ta.select();
+  }
+});
+
+/* exportación */
+let DL=null;
+const MIMES={pdf:'application/pdf',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',json:'application/json',plani:'application/json'};
+/* Fuera de claude.ai no existe la capacidad de descargas: se baja el archivo con el navegador. */
+function descargaNavegador(){
+  return {nativo:true,async save({filename,data}){
+    const ext=filename.split('.').pop().toLowerCase();
+    const url=URL.createObjectURL(new Blob([data],{type:MIMES[ext]||'application/octet-stream'}));
+    const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    return {status:'saved'};
+  }};
+}
+(async()=>{try{DL=await (window.claude&&window.claude.use?window.claude.use('downloads'):null)}catch(e){DL=null}
+  if(!DL)DL=descargaNavegador();
+  ['#x-pdf','#x-xls','#x-plani'].forEach(q=>{$(q).hidden=false})})();
+const KRGB={expo:[31,95,150],part:[22,117,99],prac:[164,90,10],pausa:[98,116,127]};
+const fhm=m=>Math.floor(m/60)+' h '+p2(m%60)+' min';
+function fileBase(){
+  const t=(S.title.trim()||'cronograma').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'cronograma';
+  return t+(S.date?'-'+S.date:'');
+}
+async function saveFile(name,data){
+  try{await DL.save({filename:name,data});toast('Archivo guardado: '+name)}
+  catch(e){if(e&&e.code==='declined')return;toast('No se pudo guardar el archivo')}
+}
+function exportXls(){
+  if(!window.XLSX){toast('No se cargó el generador de Excel');return}
+  const s=stats(), title=S.title.trim()||'Distribución del taller';
+  const xc=[['Responsable','resp'],['Descripción','desc'],['Recursos','res']].filter(c=>S.mods.some(m=>(m[c[1]]||'').trim()));
+  const aoa=[[title],[S.date?fmtDate(S.date):''],['Horario',hm(S.ws.start)+' a '+hm(S.ws.end),'Duración del taller (min)',s.total],[],
+    ['N°','Inicio','Término','Duración (min)','Duración (h)','Módulo','Tipo',...xc.map(c=>c[0])]];
+  S.mods.forEach((m,i)=>{const d=m.end-m.start;aoa.push([i+1,hm(m.start),hm(m.end),d,+(d/60).toFixed(2),m.name,KINDS[m.kind],...xc.map(c=>c[1]==='res'?infoOf(m).res.join('; '):(m[c[1]]||'').trim())])});
+  aoa.push([],['','','Total asignado',s.assigned,+(s.assigned/60).toFixed(2)],['','','Sin asignar',s.free,+(s.free/60).toFixed(2)]);
+  if(s.excess)aoa.push(['','','Fuera del horario',s.excess,+(s.excess/60).toFixed(2)]);
+  const w1=XLSX.utils.aoa_to_sheet(aoa); w1['!cols']=[{wch:6},{wch:9},{wch:24},{wch:15},{wch:13},{wch:62},{wch:15},...xc.map(c=>({wch:c[1]==='resp'?22:50}))];
+  const res=[['Tipo','Minutos','Horas','% del asignado']];
+  Object.keys(KINDS).forEach(k=>res.push([KINDS[k],s.by[k],+(s.by[k]/60).toFixed(2),s.assigned?+(s.by[k]/s.assigned*100).toFixed(1):0]));
+  const w2=XLSX.utils.aoa_to_sheet(res); w2['!cols']=[{wch:16},{wch:10},{wch:10},{wch:16}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,w1,'Cronograma'); XLSX.utils.book_append_sheet(wb,w2,'Resumen por tipo');
+  saveFile(fileBase()+'.xlsx',XLSX.write(wb,{bookType:'xlsx',type:'array'}));
+}
+const PDF_DEF={tl:true,type:true,dur:true,desc:true,resp:true,res:true,tot:true};
+function pdfDetails(doc,m,o,w){
+  const i=infoOf(m), out=[]; doc.setFontSize(8.5);
+  if(o.resp&&i.resp){doc.setFont('helvetica','bold');const lw=doc.getTextWidth('Responsable: ');doc.setFont('helvetica','normal');
+    const lines=doc.splitTextToSize(i.resp,w-lw-2);out.push({inline:true,label:'Responsable',lw,lines,h:lines.length*3.9+0.8})}
+  if(o.desc&&i.desc){doc.setFont('helvetica','normal');const lines=doc.splitTextToSize(i.desc,w);out.push({label:'Descripción',lines,h:3.9+lines.length*3.9+0.8})}
+  if(o.res&&i.res.length){doc.setFont('helvetica','normal');const lines=i.res.flatMap(r=>doc.splitTextToSize('- '+r,w).map((l,k)=>k?'  '+l:l));out.push({label:'Recursos',lines,h:3.9+lines.length*3.9+0.8})}
+  return out;
+}
+function exportPdf(o){
+  const J=window.jspdf&&window.jspdf.jsPDF; if(!J){toast('No se cargó el generador de PDF');return}
+  const doc=new J({orientation:'landscape',unit:'mm',format:'a4'}), W=297,H=210,M=14, s=stats();
+  const title=S.title.trim()||'Distribución del taller';
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(19,35,46);
+  const tl=doc.splitTextToSize(title,W-2*M).slice(0,2); doc.text(tl,M,M+6);
+  let y=M+6+(tl.length-1)*8+7;
+  doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.setTextColor(86,104,116);
+  doc.text([S.date?fmtDate(S.date):null,`${hm(S.ws.start)} a ${hm(S.ws.end)}`,`${fhm(s.total)} (${s.total} min)`].filter(Boolean).join('   ·   '),M,y);
+  y+=8;
+  if(o.tl){
+    const lo=Math.floor(Math.min(S.ws.start,...S.mods.map(m=>m.start))/60)*60, hi=Math.ceil(Math.max(S.ws.end,...S.mods.map(m=>m.end))/60)*60;
+    const sc=(W-2*M)/(hi-lo), X=t=>M+(t-lo)*sc, bh=24;
+    doc.setFillColor(233,238,242); doc.rect(X(S.ws.start),y,(S.ws.end-S.ws.start)*sc,bh,'F');
+    doc.setLineWidth(.4);
+    S.mods.forEach(m=>{
+      const x=X(m.start), w=(m.end-m.start)*sc, d=m.end-m.start;
+      doc.setFillColor(...KRGB[m.kind]); doc.setDrawColor(255,255,255); doc.rect(x,y,w,bh,'FD');
+      if(w>=9){
+        doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
+        doc.text(doc.splitTextToSize(m.name,w-2.4).slice(0,6),x+1.2,y+3.4);
+        if(o.dur){doc.setFont('helvetica','normal'); doc.text(w>=14?d+' min':String(d),x+1.2,y+bh-1.6)}
+      }
+    });
+    doc.setDrawColor(150,165,175); doc.setLineWidth(.2); doc.setFontSize(7); doc.setTextColor(86,104,116);
+    for(let t=lo;t<=hi;t+=60){doc.line(X(t),y+bh,X(t),y+bh+2);doc.text(hm(t),X(t),y+bh+5.5,{align:t===lo?'left':t===hi?'right':'center'})}
+    y+=bh+13;
+  }else y+=4;
+  const wM=(W-2*M)-34-(o.type?35:0)-(o.dur?50:0), wt=wM-6;
+  const cx=[M,M+34,M+34+wM,M+34+wM+(o.type?35:0)], typeX=cx[2], durX=o.type?cx[3]:cx[2];
+  const head=()=>{doc.setFillColor(233,238,242);doc.rect(M,y,W-2*M,7,'F');doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(86,104,116);
+    doc.text('HORARIO',cx[0]+2,y+4.8);doc.text('MÓDULO',cx[1]+2,y+4.8);
+    if(o.type)doc.text('TIPO',typeX+2,y+4.8); if(o.dur)doc.text('DURACIÓN',durX+2,y+4.8); y+=7};
+  head();
+  doc.setFontSize(9.5);
+  if(!S.mods.length){doc.setFont('helvetica','normal');doc.setTextColor(86,104,116);doc.text('Sin módulos.',cx[0]+2,y+5);y+=8}
+  S.mods.forEach(m=>{
+    const d=m.end-m.start; doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+    const lines=doc.splitTextToSize(m.name,wt), mainH=lines.length*4.4+3.4;
+    const blocks=pdfDetails(doc,m,o,wt), dH=blocks.reduce((a,b)=>a+b.h,0), rh=mainH+(dH?dH+1.6:0);
+    if(y+rh>H-M-18){doc.addPage();y=M;head();}
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(19,35,46);
+    doc.text(hm(m.start)+' - '+hm(m.end),cx[0]+2,y+5);
+    doc.text(lines,cx[1]+2,y+5);
+    if(o.type){doc.setFillColor(...KRGB[m.kind]); doc.rect(typeX+2,y+2.2,3.2,3.2,'F'); doc.text(KINDS[m.kind],typeX+7,y+5)}
+    if(o.dur)doc.text(d+' min ('+nf.format(d/60)+' h)',durX+2,y+5);
+    let dy=y+mainH-1.2; doc.setFontSize(8.5);
+    blocks.forEach(b=>{
+      doc.setFont('helvetica','bold'); doc.setTextColor(86,104,116);
+      if(b.inline){
+        doc.text(b.label+':',cx[1]+2,dy+3);
+        doc.setFont('helvetica','normal'); doc.setTextColor(40,55,66); doc.text(b.lines,cx[1]+2+b.lw,dy+3);
+      }else{
+        doc.text(b.label,cx[1]+2,dy+3);
+        doc.setFont('helvetica','normal'); doc.setTextColor(40,55,66); doc.text(b.lines,cx[1]+2,dy+3+3.9);
+      }
+      dy+=b.h;
+    });
+    doc.setDrawColor(211,220,227);doc.setLineWidth(.2);doc.line(M,y+rh,W-M,y+rh); y+=rh;
+  });
+  if(o.tot){
+    if(y>H-M-24){doc.addPage();y=M}
+    y+=7; doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(19,35,46);
+    doc.text(`Asignado: ${s.assigned} min (${nf.format(s.assigned/60)} h)   ·   Sin asignar: ${s.free} min`+(s.excess?`   ·   Fuera del horario: ${s.excess} min`:''),M,y);
+    y+=6; doc.setFont('helvetica','normal');doc.setFontSize(9);
+    let x=M;
+    Object.keys(KINDS).forEach(k=>{
+      const txt=`${KINDS[k]} ${s.by[k]} min`; doc.setFillColor(...KRGB[k]); doc.rect(x,y-2.8,3,3,'F'); doc.setTextColor(19,35,46); doc.text(txt,x+4.5,y); x+=doc.getTextWidth(txt)+14;
+    });
+  }
+  const n=doc.getNumberOfPages();
+  for(let i=1;i<=n;i++){doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(120,135,145);doc.text(title,M,H-7);doc.text(i+' / '+n,W-M,H-7,{align:'right'})}
+  saveFile(fileBase()+'.pdf',doc.output('arraybuffer'));
+}
+const PDF_ROWS=[
+  ['grp','Estructura'],
+  ['tl','Línea de tiempo','Franja de colores con todos los módulos'],
+  ['type','Tipo de módulo','Expositiva, participativa, práctica o pausa'],
+  ['dur','Duración','En minutos y en horas'],
+  ['grp','Ficha de cada módulo'],
+  ['desc','Descripción','Qué se hace y qué se espera lograr'],
+  ['resp','Responsable','Quién conduce el módulo'],
+  ['res','Recursos necesarios','Lista de materiales y equipos'],
+  ['grp','Cierre'],
+  ['tot','Resumen','Minutos asignados, sin asignar y por tipo']];
+function openExport(){
+  const has={desc:S.mods.some(m=>infoOf(m).desc),resp:S.mods.some(m=>infoOf(m).resp),res:S.mods.some(m=>infoOf(m).res.length)};
+  const o=Object.assign({},PDF_DEF,S.pdf||{});
+  const cks=PDF_ROWS.map(r=>{
+    if(r[0]==='grp')return `<div class="grp-l">${r[1]}</div>`;
+    const ok=has[r[0]]!==false;
+    return `<label class="ck${ok?'':' off'}"><input type="checkbox" data-ok="${r[0]}"${o[r[0]]&&ok?' checked':''}${ok?'':' disabled'}><span><b>${r[1]}</b><em>${ok?r[2]:'Ningún módulo tiene este dato'}</em></span></label>`;
+  }).join('');
+  const d=$('#dlg'); pv=null;
+  d.innerHTML=`<div class="box"><h3 id="dlg-t">Exportar PDF</h3><p>Elige qué componentes incluir. El nombre, la fecha, el horario y el nombre de cada módulo siempre van. Los campos vacíos no se imprimen.</p>
+    <div class="presets"><button type="button" class="btn" data-preset="full">Guion de facilitación</button><button type="button" class="btn" data-preset="client">Versión para cliente</button></div>
+    <div class="cks">${cks}</div>
+    <div class="btns"><button type="button" class="btn" data-how="cancel">Cancelar</button><button type="button" class="btn primary" data-how="pdf">Exportar PDF</button></div></div>`;
+  d.hidden=false; d.querySelector('[data-how="pdf"]').focus();
+}
+function readExportOpts(){
+  const o=Object.assign({},PDF_DEF,S.pdf||{});
+  document.querySelectorAll('#dlg [data-ok]').forEach(c=>{if(!c.disabled)o[c.dataset.ok]=c.checked});
+  return o;
+}
+function applyPreset(k){
+  const on=k==='full'?['tl','type','dur','desc','resp','res','tot']:['tl','type','dur'];
+  document.querySelectorAll('#dlg [data-ok]').forEach(c=>{if(!c.disabled)c.checked=on.includes(c.dataset.ok)});
+}
+$('#x-pdf').addEventListener('click',openExport);
+$('#x-xls').addEventListener('click',exportXls);
+function exportPlani(){
+  const tipo={expo:'expositiva',part:'participativa',prac:'practica',pausa:'pausa'};
+  const doc={formato:'plani',version:1,creadoCon:'Artefacto web',exportado:new Date().toISOString(),
+    taller:{titulo:S.title.trim(),fecha:S.date||null,inicio:S.ws.start,termino:S.ws.end,
+      modulos:sortMods(S.mods).map(m=>{const i=infoOf(m);const o={nombre:m.name,tipo:tipo[m.kind]||'participativa',inicio:m.start,fin:m.end};
+        if(i.desc)o.descripcion=i.desc;if(i.resp)o.responsable=i.resp;if(i.res.length)o.recursos=i.res;return o})}};
+  saveFile(fileBase()+(DL&&DL.nativo?'.plani':'.plani.json'),JSON.stringify(doc,null,2));
+}
+$('#x-plani').addEventListener('click',exportPlani);
+function importarPlani(texto){
+  let d; try{d=JSON.parse(texto)}catch(e){toast('El archivo no se pudo leer.');return}
+  if(!d||d.formato!=='plani'||!d.taller){toast('El archivo no es un taller de Plani.');return}
+  if((d.version||1)>1){toast('El archivo es de una versión más nueva del formato.');return}
+  const t=d.taller;
+  if(!(t.inicio>=0&&t.termino<=1440&&t.termino>t.inicio)){toast('El horario del archivo no es válido.');return}
+  const kinds={expositiva:'expo',participativa:'part',practica:'prac','práctica':'prac',pausa:'pausa'};
+  const trans=(t.recursosTransversales||[]).map(x=>String(x).trim()).filter(Boolean);
+  let id=1,omit=0; const mods=[];
+  (t.modulos||[]).forEach(m=>{
+    if(!(m.fin>m.inicio&&m.inicio>=0&&m.fin<=2880)){omit++;return}
+    const kind=kinds[String(m.tipo||'').toLowerCase()]||'part';
+    const vistos=new Set(), res=[...(m.recursos||[]),...(kind==='pausa'?[]:trans)].map(x=>String(x).trim())
+      .filter(r=>{const k=r.toLowerCase();if(!r||vistos.has(k))return false;vistos.add(k);return true});
+    mods.push({id:id++,name:String(m.nombre||'Módulo'),kind,start:m.inicio,end:m.fin,desc:m.descripcion||'',resp:m.responsable||'',res:res.join('\n')});
+  });
+  pushUndo(); S.ws={start:t.inicio,end:t.termino}; S.mods=sortMods(mods); S.nid=id;
+  S.title=String(t.titulo||''); S.date=/^\d{4}-\d{2}-\d{2}$/.test(t.fecha||'')?t.fecha:'';
+  sel=null; pv=null; save(); ti.value=S.title; dt.value=S.date; renderAll();
+  toast('Taller importado'+(omit?` (${omit} módulo(s) omitidos por horas inválidas)`:'')+(trans.length?'. Los recursos de todo el taller se agregaron a cada módulo.':''),'Deshacer',doUndo);
+}
+$('#x-imp').addEventListener('click',()=>$('#f-imp').click());
+$('#f-imp').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(f)importarPlani(await f.text())});
+const ti=$('#title'), dt=$('#ws-date'); ti.value=S.title; dt.value=S.date;
+ti.addEventListener('input',()=>{S.title=ti.value;save()});
+dt.addEventListener('change',()=>{S.date=dt.value;save()});
+
+function toast(msg,label,fn){
+  const t=$('#toast'); t.innerHTML=`<span>${esc(msg)}</span>`;
+  if(label){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=()=>{t.hidden=true;fn()};t.appendChild(b)}
+  t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{t.hidden=true},5000);
+}
+
+let rz=0; window.addEventListener('resize',()=>{cancelAnimationFrame(rz);rz=requestAnimationFrame(()=>{if(!pv)renderLane()})});
+renderAll();
+})();
+</script>
+
+</body>
+</html>
