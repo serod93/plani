@@ -12,7 +12,7 @@ const infoOf=m=>({resp:(m.resp||'').trim(),desc:(m.desc||'').trim(),res:(m.res||
 const clave=s=>String(s).trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const setRes=(m,arr)=>{m.res=arr.join('\n')};
 const hasInfo=m=>{const i=infoOf(m);return !!(i.resp||i.desc||i.res.length)};
-const openIds=new Set();
+const openIds=new Set(), cardOpen=new Set();
 
 function seed(){return {ws:{start:540,end:780},nid:1,unit:'min',title:'',date:'',mods:[]}}
 
@@ -25,7 +25,7 @@ function load(){
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
-let S=load(); S.trans=Array.isArray(S.trans)?S.trans:[]; S.vocab=Array.isArray(S.vocab)?S.vocab:[]; S.mods=sortMods(S.mods); S.unit=S.unit==='h'?'h':'min'; S.nid=S.nid||(Math.max(0,...S.mods.map(m=>m.id))+1); S.title=S.title||''; S.date=S.date||'';
+let S=load(); S.trans=Array.isArray(S.trans)?S.trans:[]; S.vista=S.vista==='a'?'a':'c'; S.vocab=Array.isArray(S.vocab)?S.vocab:[]; S.mods=sortMods(S.mods); S.unit=S.unit==='h'?'h':'min'; S.nid=S.nid||(Math.max(0,...S.mods.map(m=>m.id))+1); S.title=S.title||''; S.date=S.date||'';
 let sel=null, pv=null, ppm=4, undo=[], refocus=null, toastT=0;
 
 /* unidades */
@@ -93,6 +93,7 @@ function renderTop(){
   $('#ws-start').value=hm(S.ws.start); $('#ws-end').value=hm(S.ws.end);
   const t=S.ws.end-S.ws.start;
   $('#total').innerHTML=`<span class="lbl">Duración del taller</span><b class="num">${fd(t)}</b><span class="num">${fl(t)}</span>`;
+  $('#v-c').setAttribute('aria-pressed',S.vista==='c'); $('#v-a').setAttribute('aria-pressed',S.vista==='a'); const tm=window.PlaniTema?PlaniTema.get():'auto'; ['auto','claro','oscuro'].forEach(k=>{const b=$('#tema-'+k); if(b)b.setAttribute('aria-pressed',tm===k)});
   $('#u-min').setAttribute('aria-pressed',S.unit==='min'); $('#u-h').setAttribute('aria-pressed',S.unit==='h');
   $('#undo').disabled=!undo.length;
 }
@@ -110,12 +111,17 @@ function renderSummary(){
     <div><div class="stack">${segs}</div><ul class="legend">${leg}</ul><p class="mix">${mix}</p></div>`;
 }
 
+function renderSelInfo(){
+  const el=$('#sel-info'); if(!el)return; const m=S.mods.find(x=>x.id===sel);
+  el.innerHTML=m?`<span><b>${esc(m.name)}</b> · ${hm(m.start)}–${hm(m.end)} · ${fd(m.end-m.start)}</span><button type="button" class="btn sug-b" data-edit="${m.id}">Editar</button>`:'Toca un módulo para ver su detalle.';
+}
 function renderLane(){
   const track=$('#track'), wrap=$('#scroll');
   const pl=pv?plan(pv.base,pv.id,pv.edge,pv.t):null;
   const mods=pl?pl.mods:S.mods, conflict=pl&&pl.conflict;
   const view=pv?pv.view:computeView(S.mods);
-  if(pv) ppm=pv.ppm; else ppm=Math.max(3.4,wrap.clientWidth/(view.end-view.start));
+  const ajuste=wrap.clientWidth/(view.end-view.start);
+  if(pv) ppm=pv.ppm; else ppm=S.vista==='a'?Math.max(6,ajuste):Math.max(.6,ajuste);
   const X=t=>(t-view.start)*ppm, W=(view.end-view.start)*ppm;
   track.style.width=W+'px';
   let h='';
@@ -132,7 +138,7 @@ function renderLane(){
   if(!pv) gaps().forEach(g=>{const gw=X(g[1])-X(g[0]);h+=`<button type="button" class="gap" data-g0="${g[0]}" data-g1="${g[1]}" style="left:${X(g[0])}px;width:${gw}px" aria-label="Agregar módulo de ${g[1]-g[0]} min a las ${hm(g[0])}"><span class="gap-in"><b>+</b>${gw>=90?`<span class="mono">${g[1]-g[0]} min</span>`:''}</span></button>`});
   mods.forEach(m=>{
     const w=(m.end-m.start)*ppm, isD=pv&&pv.id===m.id, hit=conflict&&conflict.other===m.id;
-    h+=`<div class="mod k-${m.kind}${sel===m.id?' sel':''}${isD?' drag':''}${isD&&conflict?' conflict':''}${hit?' hit':''}${w<110?' tiny':''}" data-id="${m.id}" style="left:${X(m.start)}px;width:${w}px" title="${esc(m.name)} · ${hm(m.start)}–${hm(m.end)} · ${m.end-m.start} min">
+    h+=`<div class="mod k-${m.kind}${sel===m.id?' sel':''}${isD?' drag':''}${isD&&conflict?' conflict':''}${hit?' hit':''}${w<110?' tiny':''}${w<64?' s1':''}${w<48?' s2':''}" data-id="${m.id}" style="left:${X(m.start)}px;width:${w}px" title="${esc(m.name)} · ${hm(m.start)}–${hm(m.end)} · ${m.end-m.start} min">
       <button type="button" class="h hl" data-edge="start" aria-label="Inicio de ${esc(m.name)}: ${hm(m.start)}. Flechas izquierda y derecha para mover"></button>
       <div class="nm">${esc(m.name)}</div><div class="du">${fd(m.end-m.start)}</div><div class="tm">${hm(m.start)}–${hm(m.end)}</div>
       <button type="button" class="h hr" data-edge="end" aria-label="Término de ${esc(m.name)}: ${hm(m.end)}. Flechas izquierda y derecha para mover"></button></div>`;
@@ -141,7 +147,7 @@ function renderLane(){
     const m=mods.find(x=>x.id===pv.id), t=pv.edge==='end'?m.end:m.start;
     h+=`<div class="bubble${conflict?' warn':''}" style="left:${X(t)}px">${hm(t)} · ${fd(m.end-m.start)}${conflict?' · se superpone '+conflict.overlap+' min':''}</div>`;
   }
-  track.innerHTML=h;
+  track.innerHTML=h; renderSelInfo();
   if(refocus){const el=track.querySelector(`[data-id="${refocus.id}"] [data-edge="${refocus.edge}"]`);if(el)el.focus();refocus=null}
 }
 
@@ -150,16 +156,17 @@ function renderRows(){
   if(!S.mods.length){body.innerHTML=`<tr><td colspan="8" class="empty">No hay módulos. Agrega el primero con el botón de arriba o toca un espacio vacío de la línea de tiempo.</td></tr>`;return}
   const inH=S.unit==='h';
   body.innerHTML=S.mods.map((m,i)=>{
-    const d=m.end-m.start, op=openIds.has(m.id);
-    let h=`<tr data-id="${m.id}" class="${sel===m.id?'sel':''}">
+    const d=m.end-m.start, op=openIds.has(m.id), ab=cardOpen.has(m.id);
+    let h=`<tr data-id="${m.id}" class="k-${m.kind}${sel===m.id?' sel':''}${ab?' abierto':''}">
+      <td class="m-sum"><button type="button" class="m-toggle" data-card="${m.id}" aria-expanded="${ab}"><i class="m-k"></i><span class="m-num">${i+1}</span><span class="m-txt"><b class="m-nom">${esc(m.name)}</b><span class="m-meta">${hm(m.start)}–${hm(m.end)} · ${fd(d)}</span></span><span class="m-chev" aria-hidden="true">${ab?'▾':'▸'}</span></button></td>
       <td class="n">${i+1}</td>
-      <td><input type="text" id="nm-${m.id}" data-f="name" value="${esc(m.name)}" aria-label="Nombre del módulo ${i+1}"></td>
-      <td><select id="kd-${m.id}" data-f="kind" class="k-${m.kind}" aria-label="Tipo del módulo ${i+1}">${Object.keys(KINDS).map(k=>`<option value="${k}"${k===m.kind?' selected':''}>${KINDS[k]}</option>`).join('')}</select></td>
-      <td><input type="time" step="300" id="st-${m.id}" data-f="start" value="${hm(m.start)}" aria-label="Inicio del módulo ${i+1}"></td>
-      <td><input type="time" step="300" id="en-${m.id}" data-f="end" value="${hm(m.end)}" aria-label="Término del módulo ${i+1}"></td>
-      <td><input type="number" id="du-${m.id}" data-f="dur" min="${inH?0.1:MIN}" step="${inH?0.25:5}" value="${inH?+(d/60).toFixed(2):d}" aria-label="Duración del módulo ${i+1}"><span class="u">${inH?'h':'min'}</span></td>
-      <td><button type="button" class="tg${hasInfo(m)?' has':''}" data-tg="${m.id}" aria-expanded="${op}" aria-controls="dt-${m.id}">${op?'▾':'▸'} Ficha</button></td>
-      <td><button type="button" class="del" data-del="${m.id}" aria-label="Eliminar ${esc(m.name)}">×</button></td></tr>`;
+      <td class="c-name" data-label="Módulo"><input type="text" id="nm-${m.id}" data-f="name" value="${esc(m.name)}" aria-label="Nombre del módulo ${i+1}"></td>
+      <td class="c-tipo" data-label="Tipo"><select id="kd-${m.id}" data-f="kind" class="k-${m.kind}" aria-label="Tipo del módulo ${i+1}">${Object.keys(KINDS).map(k=>`<option value="${k}"${k===m.kind?' selected':''}>${KINDS[k]}</option>`).join('')}</select></td>
+      <td class="c-start" data-label="Inicio"><input type="time" step="300" id="st-${m.id}" data-f="start" value="${hm(m.start)}" aria-label="Inicio del módulo ${i+1}"></td>
+      <td class="c-end" data-label="Término"><input type="time" step="300" id="en-${m.id}" data-f="end" value="${hm(m.end)}" aria-label="Término del módulo ${i+1}"></td>
+      <td class="c-dur" data-label="Duración"><input type="number" id="du-${m.id}" data-f="dur" min="${inH?0.1:MIN}" step="${inH?0.25:5}" value="${inH?+(d/60).toFixed(2):d}" aria-label="Duración del módulo ${i+1}"><span class="u">${inH?'h':'min'}</span></td>
+      <td class="c-ficha"><button type="button" class="tg${hasInfo(m)?' has':''}" data-tg="${m.id}" aria-expanded="${op}" aria-controls="dt-${m.id}">${op?'▾':'▸'} Ficha</button></td>
+      <td class="c-del"><button type="button" class="del" data-del="${m.id}" aria-label="Eliminar ${esc(m.name)}">×</button></td></tr>`;
     if(op) h+=`<tr class="detail${sel===m.id?' sel':''}" id="dt-${m.id}" data-id="${m.id}"><td colspan="8"><div class="card">
       <div class="field"><label for="ds-${m.id}">Descripción</label><textarea id="ds-${m.id}" data-f="desc" rows="4" placeholder="Qué se hace en este módulo y qué se espera lograr">${esc(m.desc||'')}</textarea></div>
       <div class="field"><label for="rp-${m.id}">Responsable</label><input type="text" id="rp-${m.id}" data-f="resp" value="${esc(m.resp||'')}" placeholder="Quién conduce este módulo"></div>
@@ -237,6 +244,9 @@ document.addEventListener('input',e=>{
   t.querySelector('.sug').innerHTML=sugHTML(lista.concat(JSON.parse(t.dataset.excl||'[]')),inp.value);
 });
 document.addEventListener('click',e=>{
+  const cdt=e.target.closest&&e.target.closest('[data-card]'), ed=e.target.closest&&e.target.closest('[data-edit]');
+  if(cdt){const id=+cdt.dataset.card; if(cardOpen.has(id))cardOpen.delete(id); else cardOpen.add(id); sel=id; renderRows(); renderLane(); return}
+  if(ed){const id=+ed.dataset.edit; cardOpen.add(id); sel=id; renderRows(); renderLane(); const r=document.querySelector('#rows tr[data-id="'+id+'"]'); if(r)r.scrollIntoView({block:'center',behavior:'smooth'}); return}
   const rm=e.target.closest&&e.target.closest('[data-rm]'), sg=e.target.closest&&e.target.closest('[data-sug]'), cd=e.target.closest&&e.target.closest('[data-cand]');
   if(rm){const t=rm.closest('.tags'),o=t.dataset.owner; if(o==='t')quitarTrans(rm.dataset.rm); else quitarRecurso(+o.slice(2),rm.dataset.rm); renderRes(inputDe(t)); return}
   if(sg){const t=sg.closest('.tags'); anadir(t,sg.dataset.sug); return}
@@ -348,7 +358,7 @@ rows.addEventListener('focusin',e=>{
 rows.addEventListener('input',e=>{
   const el=e.target,f=el.dataset.f; if(!f)return;
   const id=+el.closest('tr').dataset.id, m=S.mods.find(x=>x.id===id); if(!m)return;
-  if(f==='name'){m.name=el.value;renderLane();return}
+  if(f==='name'){m.name=el.value;const sm=el.closest('tr').querySelector('.m-nom');if(sm)sm.textContent=el.value;renderLane();return}
   if(f==='desc'||f==='resp'){m[f]=el.value;save();const b=rows.querySelector(`[data-tg="${id}"]`);if(b)b.classList.toggle('has',hasInfo(m))}
 });
 rows.addEventListener('change',e=>{
@@ -383,7 +393,7 @@ function addMod(a,b){
   }
   const id=S.nid;
   mutate(()=>{S.nid++;S.mods.push({id,name:'Nuevo módulo',kind:'part',desc:'',resp:'',res:'',start:st,end:st+(a!=null?len:15)})});
-  sel=id; renderAll();
+  sel=id; cardOpen.add(id); renderAll();
   const inp=$('#nm-'+id); if(inp){inp.focus();inp.select()}
 }
 $('#add').addEventListener('click',()=>addMod());
@@ -391,6 +401,9 @@ $('#undo').addEventListener('click',doUndo);
 $('#reset').addEventListener('click',()=>{if(!S.mods.length)return;mutate(()=>{S.mods=[]});sel=null;renderAll();toast('Se vaciaron los módulos','Deshacer',doUndo)});
 $('#u-min').addEventListener('click',()=>{S.unit='min';save();renderAll()});
 $('#u-h').addEventListener('click',()=>{S.unit='h';save();renderAll()});
+$('#v-c').addEventListener('click',()=>{S.vista='c';save();renderTop();renderLane()});
+$('#v-a').addEventListener('click',()=>{S.vista='a';save();renderTop();renderLane()});
+document.querySelectorAll('[data-tema]').forEach(b=>b.addEventListener('click',()=>{if(window.PlaniTema)PlaniTema.set(b.dataset.tema);renderTop()}));
 function wsChange(){
   const a=parse($('#ws-start').value), b=parse($('#ws-end').value);
   if(a==null||b==null||b<=a){toast('El término debe ser posterior al inicio');renderTop();return}

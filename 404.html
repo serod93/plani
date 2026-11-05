@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" type="image/svg+xml" href="/plani/assets/favicon.svg">
-<script>(function(){var m=matchMedia('(prefers-color-scheme: dark)');function a(){document.documentElement.setAttribute('data-theme',m.matches?'dark':'light')}a();m.addEventListener('change',a)})()</script>
+<script>(function(){var m=matchMedia('(prefers-color-scheme: dark)'),k='plani-tema';function g(){try{return localStorage.getItem(k)||'auto'}catch(e){return 'auto'}}function a(){var t=g();document.documentElement.setAttribute('data-theme',t==='oscuro'||(t!=='claro'&&m.matches)?'dark':'light')}a();m.addEventListener('change',a);window.PlaniTema={get:g,set:function(t){try{localStorage.setItem(k,t)}catch(e){}a()}}})()</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700..800&family=Instrument+Sans:wght@400..600&display=swap">
