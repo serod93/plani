@@ -5,6 +5,7 @@ Planificador de talleres en el navegador: reparte el tiempo de un taller en una 
 **Sitio:** https://serod93.github.io/plani/
 
 - Incluye un recorrido guiado que se muestra la primera vez, se puede saltar y se reabre con «Ver tutorial».
+- Los recursos se escriben y se confirman con Enter, como etiquetas, y se reutilizan en otros módulos. Los de toda la jornada van en su propio bloque. Al exportar el PDF se puede sumar una checklist de recursos en una hoja aparte.
 - Todo corre en tu navegador. No hay servidor ni cuentas: lo que planificas se guarda solo en tu navegador, en este dispositivo.
 - Arrastra el borde de un módulo para cambiar su inicio o su término. Si choca con el vecino, la herramienta pregunta si recortar o desplazar el resto.
 - **Guardar para Plani** descarga un archivo `.plani` (JSON legible) con lo editable; **Importar .plani** lo vuelve a abrir. También lo lee la app de Mac de Plani.

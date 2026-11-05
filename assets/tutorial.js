@@ -16,9 +16,11 @@
     {sel:'#panel-linea',titulo:'Si un módulo choca con otro',
      texto:'Cuando estiras un borde sobre el módulo vecino, Plani te pregunta qué hacer: <b>recortar</b> al vecino o <b>desplazar</b> todo el cronograma en esa dirección. Si no te convence, cancelas o deshaces.'},
     {sel:'#panel-modulos',titulo:'Detalla cada módulo',
-     texto:'En la lista cambias el nombre, el tipo, las horas y la duración. El botón <b>Ficha</b> abre la descripción, el responsable y los recursos de ese módulo. Si no la abres, no estorba.'},
+     texto:'En la lista cambias el nombre, el tipo, las horas y la duración. El botón <b>Ficha</b> abre la descripción, el responsable y los recursos de ese módulo: escribe un recurso y presiona <b>Enter</b> para dejarlo como etiqueta. Si no abres la ficha, no estorba.'},
+    {sel:'#panel-trans',titulo:'Recursos de todo el taller',
+     texto:'Lo que usas en toda la jornada (proyector, plumones…) va aquí, una sola vez. Si un recurso se repite en varios módulos, Plani te sugiere hacerlo transversal.'},
     {sel:'#acts',titulo:'Exporta, comparte y vuelve',
-     texto:'<b>Exportar PDF</b> te deja elegir qué incluir (por ejemplo, sin fichas para enviarlo a un cliente). También hay <b>Excel</b> y <b>Guardar para Plani</b>, un archivo editable que se abre con <b>Importar .plani</b>. Todo se guarda en tu navegador mientras trabajas.'},
+     texto:'<b>Exportar PDF</b> te deja elegir qué incluir (por ejemplo, sin fichas para enviarlo a un cliente). También hay <b>Excel</b> y <b>Guardar para Plani</b>, un archivo editable que se abre con <b>Importar .plani</b>. Al exportar el PDF puedes sumar al final una <b>checklist de recursos</b> en una hoja aparte, para ir marcando lo que ya tienes. Todo se guarda en tu navegador mientras trabajas.'},
     {titulo:'Listo, a planificar',final:true,
      texto:'Puedes volver a este recorrido cuando quieras con <b>Ver tutorial</b>. Si prefieres practicar, cargo un ejemplo que puedes deshacer.'}
   ];
