@@ -12,7 +12,7 @@
     {sel:'#summary',titulo:'Mira cómo se reparte el tiempo',
      texto:'Aquí ves cuánto tiempo llevas asignado, cuánto queda libre y cómo se divide entre exposición y trabajo de los participantes.'},
     {sel:'#panel-linea',titulo:'Crea y ajusta módulos',
-     texto:'Toca un espacio con <b>+</b> para crear un módulo. Después <b>arrastra el borde</b> izquierdo o derecho de un módulo para cambiar su inicio o su término, de a 5 minutos. También sirven las flechas del teclado. Con la vista <b>Ampliada</b> puedes deslizar para ver el detalle, y con <b>Compacta</b> ves todo el taller de un vistazo.'},
+     texto:'Toca un espacio con <b>+</b> para crear un módulo. Después <b>arrastra el borde</b> izquierdo o derecho de un módulo para cambiar su inicio o su término, de a 5 minutos. También sirven las flechas del teclado. En el teléfono desliza la línea hacia los lados para ver todo el taller.'},
     {sel:'#panel-linea',titulo:'Si un módulo choca con otro',
      texto:'Cuando estiras un borde sobre el módulo vecino, Plani te pregunta qué hacer: <b>recortar</b> al vecino o <b>desplazar</b> todo el cronograma en esa dirección. Si no te convence, cancelas o deshaces.'},
     {sel:'#panel-modulos',titulo:'Detalla cada módulo',

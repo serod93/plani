@@ -25,7 +25,7 @@ function load(){
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
-let S=load(); S.trans=Array.isArray(S.trans)?S.trans:[]; S.vista=S.vista==='a'?'a':'c'; S.vocab=Array.isArray(S.vocab)?S.vocab:[]; S.mods=sortMods(S.mods); S.unit=S.unit==='h'?'h':'min'; S.nid=S.nid||(Math.max(0,...S.mods.map(m=>m.id))+1); S.title=S.title||''; S.date=S.date||'';
+let S=load(); S.trans=Array.isArray(S.trans)?S.trans:[];  S.vocab=Array.isArray(S.vocab)?S.vocab:[]; S.mods=sortMods(S.mods); S.unit=S.unit==='h'?'h':'min'; S.nid=S.nid||(Math.max(0,...S.mods.map(m=>m.id))+1); S.title=S.title||''; S.date=S.date||'';
 let sel=null, pv=null, ppm=4, undo=[], refocus=null, toastT=0;
 
 /* unidades */
@@ -93,7 +93,7 @@ function renderTop(){
   $('#ws-start').value=hm(S.ws.start); $('#ws-end').value=hm(S.ws.end);
   const t=S.ws.end-S.ws.start;
   $('#total').innerHTML=`<span class="lbl">Duración del taller</span><b class="num">${fd(t)}</b><span class="num">${fl(t)}</span>`;
-  $('#v-c').setAttribute('aria-pressed',S.vista==='c'); $('#v-a').setAttribute('aria-pressed',S.vista==='a'); const tm=window.PlaniTema?PlaniTema.get():'auto'; ['auto','claro','oscuro'].forEach(k=>{const b=$('#tema-'+k); if(b)b.setAttribute('aria-pressed',tm===k)});
+  const tm=window.PlaniTema?PlaniTema.get():'auto'; ['auto','claro','oscuro'].forEach(k=>{const b=$('#tema-'+k); if(b)b.setAttribute('aria-pressed',tm===k)});
   $('#u-min').setAttribute('aria-pressed',S.unit==='min'); $('#u-h').setAttribute('aria-pressed',S.unit==='h');
   $('#undo').disabled=!undo.length;
 }
@@ -121,7 +121,7 @@ function renderLane(){
   const mods=pl?pl.mods:S.mods, conflict=pl&&pl.conflict;
   const view=pv?pv.view:computeView(S.mods);
   const ajuste=wrap.clientWidth/(view.end-view.start);
-  if(pv) ppm=pv.ppm; else ppm=S.vista==='a'?Math.max(6,ajuste):Math.max(.6,ajuste);
+  if(pv) ppm=pv.ppm; else ppm=Math.max(innerWidth<=720?6:3.4,ajuste);
   const X=t=>(t-view.start)*ppm, W=(view.end-view.start)*ppm;
   track.style.width=W+'px';
   let h='';
@@ -401,8 +401,6 @@ $('#undo').addEventListener('click',doUndo);
 $('#reset').addEventListener('click',()=>{if(!S.mods.length)return;mutate(()=>{S.mods=[]});sel=null;renderAll();toast('Se vaciaron los módulos','Deshacer',doUndo)});
 $('#u-min').addEventListener('click',()=>{S.unit='min';save();renderAll()});
 $('#u-h').addEventListener('click',()=>{S.unit='h';save();renderAll()});
-$('#v-c').addEventListener('click',()=>{S.vista='c';save();renderTop();renderLane()});
-$('#v-a').addEventListener('click',()=>{S.vista='a';save();renderTop();renderLane()});
 document.querySelectorAll('[data-tema]').forEach(b=>b.addEventListener('click',()=>{if(window.PlaniTema)PlaniTema.set(b.dataset.tema);renderTop()}));
 function wsChange(){
   const a=parse($('#ws-start').value), b=parse($('#ws-end').value);

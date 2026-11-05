@@ -187,7 +187,6 @@ tr.detail td{border-top:0;padding:0 8px 12px 40px}
 .seg-icon button{flex:none;display:inline-flex;align-items:center;justify-content:center;padding:6px 9px}
 .seg-icon button svg{display:block}
 .seg-sm button{padding:4px 10px;font-size:13px}
-.tl-ctrl{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
 .sel-info{margin:8px 0 0;font-size:13.5px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;min-height:30px;color:var(--muted)}
 .sel-info b{color:var(--fg)}
 .mod.s1 .nm{display:none}
@@ -208,10 +207,11 @@ td.m-sum{display:none}
   .topbar{gap:8px;flex-wrap:nowrap}
   .solo-pc{display:none}
   .bar-top{flex-direction:column;align-items:stretch}
-  .grp{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;align-items:end;width:100%}
+  .bar-top>*,.grp>*{min-width:0}
+  .grp{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 16px;align-items:end;width:100%;max-width:100%}
   .grp .f-fecha,.grp .f-total,.grp .f-unidad{grid-column:1/-1}
   .grp .f-unidad .seg{width:100%}
-  .grp input[type=time],.grp input[type=date]{width:100%}
+  .grp input[type=time],.grp input[type=date]{display:block;width:100%;min-width:0;max-width:100%;min-height:42px;text-align:left;-webkit-appearance:none;appearance:none}
   .acts .btn{flex:1 1 auto}
   .tl-head .hint{flex-basis:100%}
 
@@ -219,7 +219,7 @@ td.m-sum{display:none}
   table,tbody{display:block;min-width:0;width:100%}
   thead{display:none}
   #rows tr{display:block}
-  #rows tr[data-id]:not(.detail){display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--bg);border:1px solid var(--line);border-radius:var(--radio-chico);margin-bottom:10px;padding:0 0 12px}
+  #rows tr[data-id]:not(.detail){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;background:var(--bg);border:1px solid var(--line);border-radius:var(--radio-chico);margin-bottom:10px;padding:0 0 12px}
   #rows tr[data-id]:not(.detail):not(.abierto){padding-bottom:0}
   #rows tr.sel:not(.detail){border-color:var(--tinta)}
   #rows tr.sel td{background:transparent}
@@ -230,7 +230,9 @@ td.m-sum{display:none}
   #rows td[data-label]::before{content:attr(data-label);display:block;font:600 11px var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
   #rows td.c-name{grid-column:1/-1;order:1}
   #rows td.c-start{order:2}#rows td.c-end{order:3}#rows td.c-tipo{order:4}#rows td.c-dur{order:5}#rows td.c-ficha{order:6}#rows td.c-del{order:7;text-align:right}
-  #rows td input[type=text],#rows td select,#rows td input[type=time]{width:100%;min-width:0}
+  #rows td{min-width:0}
+  #rows td input[type=text],#rows td select,#rows td input[type=time]{display:block;width:100%;min-width:0;max-width:100%;min-height:42px;text-align:left;-webkit-appearance:none;appearance:none}
+  #rows td select{padding-right:28px}
   #rows td.c-dur input{width:calc(100% - 34px)}
   #rows td.c-ficha .tg,#rows td.c-del .del{min-height:36px}
   #rows tr.detail{display:block;margin:-6px 0 12px}
